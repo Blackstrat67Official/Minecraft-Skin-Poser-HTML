@@ -1,0 +1,231 @@
+:root {
+    --bg-main: #000000;
+    --bg-panel: #0a0a0a;
+    --bg-element: #121212;
+    --bg-hover: #1f1f1f;
+    --border-color: #262626;
+    --border-hover: #525252;
+    --text-main: #ffffff;
+    --text-muted: #a3a3a3;
+}
+
+body {
+    margin: 0;
+    overflow: hidden;
+    background-color: var(--bg-main);
+    font-family: 'Inter', system-ui, sans-serif;
+    color: var(--text-main);
+    display: flex;
+    flex-direction: row;
+}
+
+#ui-container {
+    width: 320px;
+    height: 100vh;
+    overflow-y: auto;
+    background: var(--bg-panel);
+    padding: 15px;
+    border-right: 1px solid var(--border-color);
+    z-index: 10;
+    flex-shrink: 0;
+    transition: transform 0.3s ease;
+}
+
+#canvas-container {
+    flex-grow: 1;
+    height: 100vh;
+    display: block;
+    position: relative;
+}
+
+body.preview-mode #ui-container { display: none; }
+body.preview-mode #preview-overlay { display: flex; }
+
+#preview-overlay {
+    display: none;
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    z-index: 50;
+    gap: 10px;
+}
+
+/* Scrollbar compatta e dark */
+#ui-container::-webkit-scrollbar { width: 6px; }
+#ui-container::-webkit-scrollbar-track { background: transparent; }
+#ui-container::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+#ui-container::-webkit-scrollbar-thumb:hover { background: #555; }
+
+.control-group {
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+}
+.control-group:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.slider-row {
+    display: flex;
+    align-items: center;
+    margin-top: 6px;
+    gap: 6px;
+}
+.slider-label {
+    width: 35px;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-align: right;
+    text-transform: uppercase;
+}
+
+input[type=range] {
+    flex-grow: 1;
+    height: 3px;
+    background: var(--border-color);
+    border-radius: 2px;
+    outline: none;
+    -webkit-appearance: none;
+}
+input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--text-main);
+    cursor: pointer;
+    border: 1px solid #000;
+}
+
+.value-input {
+    width: 42px;
+    font-size: 0.7rem;
+    color: var(--text-main);
+    background: var(--bg-main);
+    padding: 2px;
+    border-radius: 4px;
+    text-align: center;
+    border: 1px solid var(--border-color);
+    outline: none;
+    transition: border-color 0.2s;
+}
+.value-input:focus { border-color: var(--text-main); }
+.value-input::-webkit-outer-spin-button,
+.value-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.value-input[type=number] { -moz-appearance: textfield; }
+
+/* Pulsante Universale Moderno */
+.btn {
+    background-color: var(--bg-element);
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    text-align: center;
+    display: inline-block;
+    width: 100%;
+    transition: all 0.15s ease;
+    user-select: none;
+}
+.btn:hover {
+    background-color: var(--bg-hover);
+    border-color: var(--border-hover);
+}
+.btn:active { transform: translateY(1px); }
+
+.joint-controls {
+    display: none;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--border-color);
+}
+.joint-controls.active { display: block; }
+
+.toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 10px;
+}
+.toggle-row input[type=checkbox] {
+    cursor: pointer;
+    width: 14px;
+    height: 14px;
+    accent-color: #555;
+    background: var(--bg-main);
+    border: 1px solid var(--border-color);
+}
+
+select.form-select {
+    width: 100%;
+    padding: 4px 6px;
+    background: var(--bg-element);
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 0.75rem;
+    margin-top: 4px;
+    outline: none;
+}
+
+.item-panel {
+    background: var(--bg-main); 
+    padding: 10px; 
+    border-radius: 6px;
+    margin-bottom: 10px;
+    border: 1px solid var(--border-color);
+}
+
+/* Toolbar 3D */
+#toolbar {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 20;
+    display: flex;
+    gap: 4px;
+    background: rgba(10, 10, 10, 0.85);
+    padding: 6px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    backdrop-filter: blur(5px);
+}
+.tool-btn {
+    width: 32px;
+    height: 32px;
+    background: transparent;
+    border-radius: 4px;
+    color: var(--text-muted);
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+}
+.tool-btn:hover { background: var(--bg-element); color: var(--text-main); }
+.tool-btn.active { background: var(--bg-hover); border-color: var(--text-main); color: var(--text-main); }
+
+h3 { margin: 0 0 6px 0; font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.05em; }
+
+#loading-overlay {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: var(--bg-main); display: flex; flex-direction: column;
+    justify-content: center; align-items: center; z-index: 100; transition: opacity 0.3s;
+}
+.spinner {
+    width: 40px; height: 40px; border: 3px solid var(--border-color);
+    border-top-color: var(--text-main); border-radius: 50%;
+    animation: spin 1s linear infinite; margin-bottom: 15px;
+}
+@keyframes spin { 100% { transform: rotate(360deg); } }

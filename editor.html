@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minecraft Skin Poser 3D</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
+    
+    <!-- CSS Esterno -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Three.js e Controlli -->
+    <script src="[https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js](https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js)"></script>
+    <script src="[https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js](https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js)"></script>
+    <script src="[https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js](https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js)"></script>
+</head>
+<body>
+
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+        <div style="font-size: 0.8rem; color: #a3a3a3; text-transform: uppercase; letter-spacing: 2px;">Inizializzazione</div>
+    </div>
+
+    <!-- Toolbar Editor -->
+    <div id="toolbar">
+        <button id="tool-select" class="tool-btn active" title="Seleziona / Camera (Esc)">🖱️</button>
+        <button id="tool-translate" class="tool-btn" title="Muovi (W)">⬍</button>
+        <button id="tool-rotate" class="tool-btn" title="Ruota (E)">⟲</button>
+        <div class="w-px bg-[#262626] mx-1 my-1"></div>
+        <button id="tool-undo" class="tool-btn" title="Annulla (Ctrl+Z)">↶</button>
+        <button id="tool-redo" class="tool-btn" title="Ripeti (Ctrl+Y)">↷</button>
+    </div>
+
+    <!-- Pulsanti Modalità Anteprima -->
+    <div id="preview-overlay">
+        <button id="btn-exit-preview" class="btn" style="width: auto;">← Esci</button>
+        <button id="btn-download-preview" class="btn" style="width: auto; border-color: #fff;">📸 Salva Render</button>
+    </div>
+
+    <div id="ui-container">
+        <div class="flex items-center mb-4 pb-3 border-b border-[#262626]">
+            <h1 class="text-base font-bold m-0 tracking-widest uppercase text-white">Skin Poser</h1>
+        </div>
+
+        <button id="btn-add-player" class="btn mb-4 border-white text-white">
+            + Aggiungi Entità
+        </button>
+
+        <!-- Contenitore dinamico dei player -->
+        <div id="players-container"></div>
+
+        <!-- SEZIONE SCENA E EXPORT GLOBALE -->
+        <div class="control-group mt-4 bg-[#121212] p-3 rounded-md border border-[#262626]">
+            <h3>Scena & Render</h3>
+            
+            <label class="flex items-center gap-2 mb-3 cursor-pointer">
+                <input type="checkbox" id="toggle-grid" checked>
+                <span class="text-xs font-semibold text-gray-300">Griglia di Riferimento</span>
+            </label>
+
+            <div class="flex items-center gap-2 mb-3">
+                <span class="text-xs font-semibold text-gray-300 flex-grow">Colore Sfondo</span>
+                <input type="color" id="bg-color" value="#000000" class="h-6 w-10 cursor-pointer border-0 rounded bg-transparent p-0">
+            </div>
+
+            <label for="bg-upload" class="btn mb-4 text-[0.7rem]">
+                Carica Sfondo (.png/jpg)
+            </label>
+            <input type="file" id="bg-upload" accept="image/*" style="display: none;">
+
+            <div class="flex gap-2 mb-3">
+                <button id="btn-export-json" class="btn !text-[0.7rem] !p-1.5 m-0">Esporta Scena</button>
+                <label for="preset-upload" class="btn !text-[0.7rem] !p-1.5 m-0">
+                    Importa Scena
+                </label>
+                <input type="file" id="preset-upload" accept=".json" style="display:none;">
+            </div>
+
+            <div class="w-full h-px bg-[#262626] mb-3"></div>
+
+            <button class="btn mb-2" id="btn-preview-mode">Modalità Anteprima</button>
+            <button class="btn border-white" id="btn-download">Salva Immagine PNG</button>
+        </div>
+    </div>
+
+    <!-- TEMPLATE DEL SINGOLO PLAYER (Nascosto) -->
+    <template id="player-template">
+        <div class="player-panel mb-3 bg-[#0a0a0a] rounded-md overflow-hidden border border-[#262626]" id="panel-__ID__">
+            <div class="flex justify-between items-center p-2.5 cursor-pointer bg-[#121212] hover:bg-[#1f1f1f] border-b border-[#262626] transition-colors" onclick="toggleAccordion('__ID__')">
+                <span class="font-bold text-xs uppercase tracking-wide text-white">Player __NUM__</span>
+                <button class="text-[#a3a3a3] hover:text-white text-[0.65rem] px-2 py-1 rounded bg-black border border-[#262626] hover:border-white transition-colors" onclick="removePlayer('__ID__', event)">X</button>
+            </div>
+            
+            <div class="p-3 hidden" id="content-__ID__">
+                <div class="control-group">
+                    <label for="skin-upload-__ID__" class="btn text-[0.7rem]">Carica Skin</label>
+                    <input type="file" id="skin-upload-__ID__" accept=".png" style="display: none;">
+                </div>
+
+                <div class="control-group">
+                    <h3>Posizione Assoluta</h3>
+                    <div class="slider-row"><span class="slider-label">X</span><input type="range" id="glob-x-__ID__" min="-100" max="100" step="1" value="0"><input type="number" class="value-input" id="val-glob-x-__ID__" value="0"></div>
+                    <div class="slider-row"><span class="slider-label">Y</span><input type="range" id="glob-y-__ID__" min="-50" max="100" step="1" value="0"><input type="number" class="value-input" id="val-glob-y-__ID__" value="0"></div>
+                    <div class="slider-row"><span class="slider-label">Z</span><input type="range" id="glob-z-__ID__" min="-100" max="100" step="1" value="0"><input type="number" class="value-input" id="val-glob-z-__ID__" value="0"></div>
+                </div>
+
+                <label class="toggle-row">
+                    <input type="checkbox" id="toggle-joints-__ID__">
+                    <span class="text-xs font-semibold text-gray-300">Snodi Avanzati</span>
+                </label>
+
+                <div class="control-group joint-controls" id="spine-controls-__ID__">
+                    <h3>Schiena (Snodo)</h3>
+                    <div class="slider-row"><span class="slider-label">X</span><input type="range" id="spine-x-__ID__" min="-45" max="45" value="0"><input type="number" class="value-input" id="val-spine-x-__ID__" value="0"></div>
+                    <div class="slider-row"><span class="slider-label">Y</span><input type="range" id="spine-y-__ID__" min="-45" max="45" value="0"><input type="number" class="value-input" id="val-spine-y-__ID__" value="0"></div>
+                    <div class="slider-row"><span class="slider-label">Z</span><input type="range" id="spine-z-__ID__" min="-45" max="45" value="0"><input type="number" class="value-input" id="val-spine-z-__ID__" value="0"></div>
+                </div>
+
+                <div class="control-group">
+                    <h3>Testa</h3>
+                    <div class="slider-row"><span class="slider-label">X</span><input type="range" id="head-x-__ID__" min="-90" max="90" value="0"><input type="number" class="value-input" id="val-head-x-__ID__" value="0"></div>
+                    <div class="slider-row"><span class="slider-label">Y</span><input type="range" id="head-y-__ID__" min="-90" max="90" value="0"><input type="number" class="value-input" id="val-head-y-__ID__" value="0"></div>
+                    <div class="slider-row"><span class="slider-label">Z</span><input type="range" id="head-z-__ID__" min="-45" max="45" value="0"><input type="number" class="value-input" id="val-head-z-__ID__" value="0"></div>
+                </div>
+
+                <div class="control-group">
+                    <h3>Braccio L</h3>
+                    <div class="slider-row"><span class="slider-label">X</span><input type="range" id="larm-x-__ID__" min="-180" max="180" value="0"><input type="number" class="value-input" id="val-larm-x-__ID__" value="0"></div>
+                    <div class="slider-row"><span class="slider-label">Y</span><input type="range" id="larm-y-__ID__" min="-90" max="90" value="0"><input type="number" class="value-input" id="val-larm-y-__ID__" value="0"></div>
+                    <div class="slider-row"><span class="slider-label">Z</span><input type="range" id="larm-z-__ID__" min="-135" max="45" value="0"><input type="number" class="value-input" id="val-larm-z-__ID__" value="0"></div>
+                    <div class="joint-controls"><h3 class="mt-2 text-white">Gomito L</h3>
+                        <div class="slider-row"><span class="slider-label">X</span><input type="range" id="lelbow-x-__ID__" min="-135" max="0" value="0"><input type="number" class="value-input" id="val-lelbow-x-__ID__" value="0"></div>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h3>Braccio R</h3>
+                    <div class="slider-row"><span class="slider-label">X</span><input type="range" id="rarm-x-__ID__" min="-180" max="180" value="0"><input type="number" class="value-input" id="val-rarm-x-__ID__" value="0"></div>
+                    <div class="slider-row"><span class="slider-label">Y</span><input type="range" id="rarm-y-__ID__" min="-90" max="90" value="0"><input type="number" class="value-input" id="val-rarm-y-__ID__" value="0"></div>
+                    <div class="slider-row"><span class="slider-label">Z</span><input type="range" id="rarm-z-__ID__" min="-45" max="135" value="0"><input type="number" class="value-input" id="val-rarm-z-__ID__" value="0"></div>
+                    <div class="joint-controls"><h3 class="mt-2 text-white">Gomito R</h3>
+                        <div class="slider-row"><span class="slider-label">X</span><input type="range" id="relbow-x-__ID__" min="-135" max="0" value="0"><input type="number" class="value-input" id="val-relbow-x-__ID__" value="0"></div>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h3>Gamba L</h3>
+                    <div class="slider-row"><span class="slider-label">X</span><input type="range" id="lleg-x-__ID__" min="-90" max="90" value="0"><input type="number" class="value-input" id="val-lleg-x-__ID__" value="0"></div>
+                    <div class="slider-row"><span class="slider-label">Y</span><input type="range" id="lleg-y-__ID__" min="-90" max="90" value="0"><input type="number" class="value-input" id="val-lleg-y-__ID__" value="0"></div>
+                    <div class="slider-row"><span class="slider-label">Z</span><input type="range" id="lleg-z-__ID__" min="-45" max="45" value="0"><input type="number" class="value-input" id="val-lleg-z-__ID__" value="0"></div>
+                    <div class="joint-controls"><h3 class="mt-2 text-white">Ginocchio L</h3>
+                        <div class="slider-row"><span class="slider-label">X</span><input type="range" id="lknee-x-__ID__" min="0" max="135" value="0"><input type="number" class="value-input" id="val-lknee-x-__ID__" value="0"></div>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h3>Gamba R</h3>
+                    <div class="slider-row"><span class="slider-label">X</span><input type="range" id="rleg-x-__ID__" min="-90" max="90" value="0"><input type="number" class="value-input" id="val-rleg-x-__ID__" value="0"></div>
+                    <div class="slider-row"><span class="slider-label">Y</span><input type="range" id="rleg-y-__ID__" min="-90" max="90" value="0"><input type="number" class="value-input" id="val-rleg-y-__ID__" value="0"></div>
+                    <div class="slider-row"><span class="slider-label">Z</span><input type="range" id="rleg-z-__ID__" min="-45" max="45" value="0"><input type="number" class="value-input" id="val-rleg-z-__ID__" value="0"></div>
+                    <div class="joint-controls"><h3 class="mt-2 text-white">Ginocchio R</h3>
+                        <div class="slider-row"><span class="slider-label">X</span><input type="range" id="rknee-x-__ID__" min="0" max="135" value="0"><input type="number" class="value-input" id="val-rknee-x-__ID__" value="0"></div>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h3>Corpo / Torsione</h3>
+                    <div class="slider-row"><span class="slider-label">RotY</span><input type="range" id="body-y-__ID__" min="-180" max="180" value="0"><input type="number" class="value-input" id="val-body-y-__ID__" value="0"></div>
+                </div>
+
+                <!-- ITEM 1 -->
+                <div class="item-panel">
+                    <h3>Item 1</h3>
+                    <label class="flex items-center gap-2 mb-2 cursor-pointer">
+                        <input type="checkbox" id="item1-visible-__ID__">
+                        <span class="text-[0.7rem] text-white">Visibile</span>
+                    </label>
+                    <label for="item1-upload-__ID__" class="btn !text-[0.7rem] !p-1.5">Carica Texture</label>
+                    <input type="file" id="item1-upload-__ID__" accept=".png" style="display: none;">
+                    
+                    <select id="item1-hand-__ID__" class="form-select mt-2"><option value="right" selected>Mano Destra</option><option value="left">Mano Sinistra</option></select>
+                    
+                    <div class="slider-row mt-2"><span class="slider-label">Scale</span><input type="range" id="item1-scale-__ID__" min="0.2" max="2" step="0.1" value="0.8"><input type="number" step="0.1" class="value-input" id="val-item1-scale-__ID__" value="0.8"></div>
+                    <div class="slider-row"><span class="slider-label">Thick</span><input type="range" id="item1-thick-__ID__" min="0.1" max="3" step="0.1" value="1"><input type="number" step="0.1" class="value-input" id="val-item1-thick-__ID__" value="1.0"></div>
+                    <div class="slider-row mt-2"><span class="slider-label">PosX</span><input type="range" id="item1-pos-x-__ID__" min="-255" max="255" step="0.5" value="0"><input type="number" step="0.5" class="value-input" id="val-item1-pos-x-__ID__" value="0"></div>
+                    <div class="slider-row"><span class="slider-label">PosY</span><input type="range" id="item1-pos-y-__ID__" min="-255" max="255" step="0.5" value="0"><input type="number" step="0.5" class="value-input" id="val-item1-pos-y-__ID__" value="0"></div>
+                    <div class="slider-row"><span class="slider-label">PosZ</span><input type="range" id="item1-pos-z-__ID__" min="-255" max="255" step="0.5" value="0"><input type="number" step="0.5" class="value-input" id="val-item1-pos-z-__ID__" value="0"></div>
+                    <div class="slider-row mt-2"><span class="slider-label">RotX</span><input type="range" id="item1-rot-x-__ID__" min="-180" max="180" value="0"><input type="number" class="value-input" id="val-item1-rot-x-__ID__" value="0"></div>
+                    <div class="slider-row"><span class="slider-label">RotY</span><input type="range" id="item1-rot-y-__ID__" min="-180" max="180" value="0"><input type="number" class="value-input" id="val-item1-rot-y-__ID__" value="0"></div>
+                    <div class="slider-row"><span class="slider-label">RotZ</span><input type="range" id="item1-rot-z-__ID__" min="-180" max="180" value="0"><input type="number" class="value-input" id="val-item1-rot-z-__ID__" value="0"></div>
+                </div>
+
+                <!-- ITEM 2 -->
+                <div class="item-panel">
+                    <h3>Item 2</h3>
+                    <label class="flex items-center gap-2 mb-2 cursor-pointer">
+                        <input type="checkbox" id="item2-visible-__ID__">
+                        <span class="text-[0.7rem] text-white">Visibile</span>
+                    </label>
+                    <label for="item2-upload-__ID__" class="btn !text-[0.7rem] !p-1.5">Carica Texture</label>
+                    <input type="file" id="item2-upload-__ID__" accept=".png" style="display: none;">
+                    
+                    <select id="item2-hand-__ID__" class="form-select mt-2"><option value="right">Mano Destra</option><option value="left" selected>Mano Sinistra</option></select>
+                    
+                    <div class="slider-row mt-2"><span class="slider-label">Scale</span><input type="range" id="item2-scale-__ID__" min="0.2" max="2" step="0.1" value="0.8"><input type="number" step="0.1" class="value-input" id="val-item2-scale-__ID__" value="0.8"></div>
+                    <div class="slider-row"><span class="slider-label">Thick</span><input type="range" id="item2-thick-__ID__" min="0.1" max="3" step="0.1" value="1"><input type="number" step="0.1" class="value-input" id="val-item2-thick-__ID__" value="1.0"></div>
+                    <div class="slider-row mt-2"><span class="slider-label">PosX</span><input type="range" id="item2-pos-x-__ID__" min="-255" max="255" step="0.5" value="0"><input type="number" step="0.5" class="value-input" id="val-item2-pos-x-__ID__" value="0"></div>
+                    <div class="slider-row"><span class="slider-label">PosY</span><input type="range" id="item2-pos-y-__ID__" min="-255" max="255" step="0.5" value="0"><input type="number" step="0.5" class="value-input" id="val-item2-pos-y-__ID__" value="0"></div>
+                    <div class="slider-row"><span class="slider-label">PosZ</span><input type="range" id="item2-pos-z-__ID__" min="-255" max="255" step="0.5" value="0"><input type="number" step="0.5" class="value-input" id="val-item2-pos-z-__ID__" value="0"></div>
+                    <div class="slider-row mt-2"><span class="slider-label">RotX</span><input type="range" id="item2-rot-x-__ID__" min="-180" max="180" value="0"><input type="number" class="value-input" id="val-item2-rot-x-__ID__" value="0"></div>
+                    <div class="slider-row"><span class="slider-label">RotY</span><input type="range" id="item2-rot-y-__ID__" min="-180" max="180" value="0"><input type="number" class="value-input" id="val-item2-rot-y-__ID__" value="0"></div>
+                    <div class="slider-row"><span class="slider-label">RotZ</span><input type="range" id="item2-rot-z-__ID__" min="-180" max="180" value="0"><input type="number" class="value-input" id="val-item2-rot-z-__ID__" value="0"></div>
+                </div>
+
+                <div class="flex gap-2 mb-2 mt-4">
+                    <button class="btn !text-[0.65rem] !p-1.5 m-0" id="btn-export-player-__ID__">Export Posa</button>
+                    <label for="btn-import-player-__ID__" class="btn !text-[0.65rem] !p-1.5 m-0">Import Posa</label>
+                    <input type="file" id="btn-import-player-__ID__" accept=".json" style="display:none;">
+                </div>
+                <button class="btn mt-1" id="btn-reset-__ID__">Reset Player</button>
+            </div>
+        </div>
+    </template>
+
+    <div id="canvas-container"></div>
+
+    <!-- JS Esterno -->
+    <script src="script.js"></script>
+</body>
+</html>
